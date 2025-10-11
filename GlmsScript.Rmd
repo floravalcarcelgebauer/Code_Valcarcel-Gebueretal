@@ -1,8 +1,9 @@
 ---
 title: "GlmsRedefined"
 output: html_document
-date: "2024-06-28"
+date: "2025-10-11"
 ---
+
 
 ```{r setup, include=FALSE}
 # MuMIn: For model selection based on Akaike Criterion (AIC)
@@ -30,8 +31,8 @@ library(emmeans) #post-hocs
 ## Loading data
 ```{r}
 library(readxl)
-Data1 <- read_excel("~/Desktop/Manuscrito/Data/Datafinal/nuevejul/databasesinhum.xlsx")
-# NAs ya gesionados, filas eliminadas a mano
+Data1 <- read_excel("yourroute")
+View(Data1)
 ```
 
 ## PHYSICAL Aggression 
@@ -42,125 +43,88 @@ z.PhysicalAggression <- as.vector(scale(Data1$PhysicalAggression))
 
 # Full model
 fullPHY <- glm(z.PhysicalAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullPHY) # [1] 122.0248
+AICc(fullPHY) # [1] 136.959
 check_collinearity(fullPHY) # >10
 
 # Best model
 bestPHY <- dredge(fullPHY,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
 subset(bestPHY, delta <= 4)
 model.avg(bestPHY, subset = cumsum(weight) <= .95)
-summary(get.models(bestPHY, 1)[[1]]) # Al aplicar la función summary te da directacmente p-values para subcategorías de las variables. Revisando el artículo de Amapola, veo que al final sí lo reportó así. ver por ejemplo su Tabla 17.
-
-# Simplified summary
-library(jtools) 
-summ(BestmodelPHY, vifs=TRUE) # Una función parecida al summary, que te da los mismos valores, pero con solo 2 decimales. Amapola copió sus tablas de resultados a partir de esto.
+summary(get.models(bestPHY, 1)[[1]]) # Early Rearing E2 is significant only.
 
 BestmodelPHY <- (get.models(bestPHY, 1)[[1]])
-AICc(BestmodelPHY) # [1] 111.196 (Menor que el del full model, OK)
+AICc(BestmodelPHY) # [1] 116.986 OK
+
+# Simplified summary
+summ(BestmodelPHY)
 
 #VIFS:
-check_collinearity(BestmodelPHY) # = 2.74
+check_collinearity(BestmodelPHY) # = 1.02 OK
 
 #POST-HOCS:
-emmeans (BestmodelPHY, pairwise ~ Abuse)
-#los p-values indican que hay diferencias significativas entre B1-B4 y B3-B4. /// Explicacion: Si la comparación "None" vs "High" muestra una diferencia significativa, implica que las personas en el nivel "High" de Abuse tienen valores de z.PhysicalAggression significativamente diferentes (mayores o menores) en comparación con las personas en el nivel "None".
-emmeans (BestmodelPHY, pairwise ~ AgeArrival)
-#los p-values indican que hay diferencias significativas entre A2-A4 y A3-A4
+emmeans (BestmodelPHY, pairwise ~ EarlyRearing)
 ```
-## SOCIAL Aggression 
+
+## DISRUPTIVE Behavior
             and EAE
 ```{r}
-# Converting Social Aggression to z-scores
-z.SocialAggression <- as.vector(scale(Data1$SocialAggression))
+# Converting Disruptive Behavior to z-scores
+z.DisruptiveBehavior <- as.vector(scale(Data1$DisruptiveBehavior))
 
 # Full model
-fullSOC <- glm(z.SocialAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullSOC) # [1] 136.053
+fulldis <- glm(z.DisruptiveBehavior ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
+AICc(fulldis) # [1] 131.6923
+check_collinearity(fulldis) # >10
 
 # Best model
-bestSOC <- dredge(fullSOC,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestSOC, delta <= 4)
-model.avg(bestSOC, subset = cumsum(weight) <= .95)
-summary(get.models(bestSOC, 1)[[1]])
+bestdis <- dredge(fulldis,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
+subset(bestdis, delta <= 4)
+model.avg(bestdis, subset = cumsum(weight) <= .95)
+summary(get.models(bestdis, 1)[[1]]) # Intercept and Early Rearing E2 significant
 
-BestmodelSOC <- (get.models(bestSOC, 1)[[1]])
-AICc(BestmodelSOC) # [1] 115.765 (Menor que el del full model, OK)
-# Simplified summary
-summ(BestmodelSOC, vifs=TRUE) # E2 and O2
+Bestmodeldis <- (get.models(bestdis, 1)[[1]])
+AICc(Bestmodeldis) # [1] 113.949 OK
 
-#VIFS:
-check_collinearity(BestmodelSOC) # = 1
+#VIFS: Not needed
 
 #POST-HOCS:
-emmeans (BestmodelSOC, pairwise ~ EarlyRearing) # E1-E2
-emmeans (BestmodelSOC, pairwise ~ Origin) # O1 - O2
-```
-## RULE breaking 
-            and EAE
-```{r}
-library(readxl)
-DataRB <- read_excel("~/Desktop/Manuscrito/Data/Datafinal/nuevejul/databaseRB.xlsx")
-```
-```{r}
-# Converting Rule Breaking to z-scores
-z.RuleBreaking <- as.vector(scale(DataRB$RuleBreaking))
-
-# Full model
-fullRB <- glm(z.RuleBreaking ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = DataRB, na.action = "na.fail")
-AICc(fullRB) # [1] 131.4474
-
-# Best model
-bestRB <- dredge(fullRB,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestRB, delta <= 4)
-model.avg(bestRB, subset = cumsum(weight) <= .95)
-summary(get.models(bestRB, 1)[[1]])
-
-BestmodelRB <- (get.models(bestRB, 1)[[1]])
-AICc(BestmodelRB) # [1] 111.3973 (Menor que el del full model, OK)
-# Simplified summary
-summ(BestmodelRB, vifs=TRUE) 
-
-#VIFS:
-check_collinearity(BestmodelRB) # <= 1.45 
-
-#POST-HOCS:
-emmeans (BestmodelRB, pairwise ~ MotherSeparation)
-emmeans (BestmodelRB, pairwise ~ EarlyRearing) # E1-E2
+emmeans (Bestmodeldis, pairwise ~ EarlyRearing)
 ```
 
 ## Aggressive behaviour 
             and EAE
 ```{r}
 # Converting Aggressive behaviour to z-scores
-z.AggressionRelated <- as.vector(scale(Data1$AggressionRelated))
-
-# GLM 
-# full model
+z.AggressionRelated <- as.vector(scale(Data1$Aggressionrelated))
+ 
+# Full model
 fullAGGR <- glm(z.AggressionRelated ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullAGGR) # [1] 136.4169
+AICc(fullAGGR) # [1] 139.972
+check_collinearity(fullAGGR) # >10
 
 # Best model
 bestAGGR <- dredge(fullAGGR,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
 subset(bestAGGR, delta <= 4)
 model.avg(bestAGGR, subset = cumsum(weight) <= .95)
-summary(get.models(bestAGGR, 1)[[1]])
+summary(get.models(bestAGGR, 1)[[1]]) # Origin O2 significant
 
 BestmodelAGGR <- (get.models(bestAGGR, 1)[[1]])
-AICc(BestmodelAGGR) #[1] 110.064 (Menor que el del full model, OK)
-# Simplified summary
-summ(BestmodelAGGR) #
+AICc(BestmodelAGGR) #[1] 114.108 OK
 
-#VIFS:
-# NO NEED
+# Simplified summary
+summ(BestmodelAGGR)
+
+#VIFS: Not needed
 
 #POST-HOCS:
-emmeans (BestmodelAGGR, pairwise ~ Origin) # O1 - O2
+emmeans (BestmodelAGGR, pairwise ~ Origin) 
 ```
+
 ## Affiliative behaviour
-                  and EAE
+                   and EAE
 ```{r}
 library(readxl)
-DataAFF <- read_excel("~/Desktop/Manuscrito/Data/Datafinal/nuevejul/databaseaff.xlsx")
+DataAFF <- read_excel("routetodatabaseFORaffiliativebehavior")
 
 # Converting Affiliative related behaviour to z-scores
 z.Affiliative <- as.vector(scale(DataAFF$AffiliativeRelated))
@@ -173,19 +137,20 @@ AICc(fullAFF) # [1] 82.5701
 bestAFF <- dredge(fullAFF,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
 subset(bestAFF, delta <= 4)
 model.avg(bestAFF, subset = cumsum(weight) <= .95)
-summary(get.models(bestAFF, 1)[[1]])
+summary(get.models(bestAFF, 1)[[1]]) # Intercept, Abuse B3, and Early Rearing E2
 
 BestmodelAFF <- (get.models(bestAFF, 1)[[1]])
-AICc(BestmodelAFF) # [1] 63.17018 (Menor que el del full model, OK)
+AICc(BestmodelAFF) # [1] 63.17018 OK
+
 # Simplified summary
-summ(BestmodelAFF, vifs=TRUE) # B4, E2, H2 and O2
+summ(BestmodelAFF, vifs=TRUE)
 
 #VIFS:
-check_collinearity(BestmodelAFF)
+check_collinearity(BestmodelAFF) OK
 
 #POST-HOCS:
 emmeans (BestmodelAFF, pairwise ~ Abuse) 
-emmeans (BestmodelAFF, pairwise ~ EarlyRearing) 
+emmeans (BestmodelAFF, pairwise ~ Origin) 
 ```
 
 ## Analytical
@@ -194,83 +159,31 @@ emmeans (BestmodelAFF, pairwise ~ EarlyRearing)
 # Converting Analytical to z-scores
 z.Analytical <- as.vector(scale(Data1$Analytical))
 
-# GLM 
-# full model
+# Full model
 fullANA <- glm(z.Analytical ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullANA) # 110.2169
+AICc(fullANA) # [1] 121.4673
+check_collinearity(fullANA)
 
-# best fit model
+# Best model
 bestANA <- dredge(fullANA,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
 subset(bestANA, delta <= 4)
 model.avg(bestANA, subset = cumsum(weight) <= .95) 
-summary(get.models(bestANA, 1)[[1]])
+summary(get.models(bestANA, 1)[[1]]) #Mother Separation M2 and M3
 
 BestmodelANA <- (get.models(bestANA, 1)[[1]])
-AICc(BestmodelANA) # [1] 107.4089
+AICc(BestmodelANA) # [1] 107.4089 OK
+
+# Simplified summary
 summ(BestmodelANA)
 
 #VIFS:
 check_collinearity(BestmodelANA)
 
 #POST-HOCS:
-emmeans (BestmodelANA, pairwise ~ Abuse) 
-emmeans (BestmodelANA, pairwise ~ AgeArrival) 
+emmeans (BestmodelANA, pairwise ~ MotherSeparation) 
+emmeans (BestmodelANA, pairwise ~ PastExperiences) 
 ```
-## Cautiousness 
-            and EAE
-```{r}
-# Converting Analytical to z-scores
-z.Cautiousness <- as.vector(scale(Data1$Cautiousness))
 
-# GLM 
-# full model
-fullCAU <- glm(z.Cautiousness ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullCAU) # [1] 138.7553
-
-# best fit model
-bestCAU <- dredge(fullCAU,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestCAU, delta <= 4)
-model.avg(bestCAU, subset = cumsum(weight) <= .95) 
-summary(get.models(bestCAU, 1)[[1]])
-
-BestmodelCAU <- (get.models(bestCAU, 1)[[1]])
-AICc(BestmodelCAU) # 120.9511
-summ(BestmodelCAU)
-
-#VIFS:
-check_collinearity(BestmodelCAU)
-
-#POST-HOCS:
-emmeans (BestmodelCAU, pairwise ~ Origin) 
-emmeans (BestmodelCAU, pairwise ~ AgeArrival) 
-```
-## Rule Consciousness
-                and EAE
-```{r}
-# Converting Rule Consciousness to z-scores
-z.RuleConsciousness <- as.vector(scale(Data1$RuleConsciousness))
-
-# GLM 
-# full model
-fullRC <- glm(z.RuleConsciousness ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullRC) # [1] 140.0775
-
-# best fit model
-bestRC <- dredge(fullRC,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestRC, delta <= 4)
-model.avg(bestRC, subset = cumsum(weight) <= .95) 
-summary(get.models(bestRC, 1)[[1]])
-
-BestmodelRC <- (get.models(bestRC, 1)[[1]])
-AICc(BestmodelRC) # [1] 119.6669
-summ(BestmodelRC)
-
-#VIFS:
-check_collinearity(BestmodelRC)
-
-#POST-HOCS:
-emmeans (BestmodelRC, pairwise ~ EarlyRearing) 
-```
 ## Extraversion
             and EAE
 ```{r}
@@ -278,92 +191,123 @@ emmeans (BestmodelRC, pairwise ~ EarlyRearing)
 z.Extraversion <- as.vector(scale(Data1$Extraversion))
 
 # GLM 
-# full model
-fullEX <- glm(z.Extraversion ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullEX) # [1] 140.7581
+# Full model
+fullEXTR <- glm(z.Extraversion ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
+AICc(fullEXTR) # 146.3017
+check_collinearity(fullEXTR)
 
-# best fit model
-bestEX <- dredge(fullEX,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestEX, delta <= 4)
-model.avg(bestEX, subset = cumsum(weight) <= .95) 
-summary(get.models(bestEX, 1)[[1]])
+# Best model
+bestEXTR <- dredge(fullEXTR,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
+subset(bestEXTR, delta <= 4)
+model.avg(bestEXTR, subset = cumsum(weight) <= .95) 
+summary(get.models(bestEXTR, 1)[[1]]) # none
 
-BestmodelEX <- (get.models(bestEX, 1)[[1]])
-AICc(BestmodelEX) # [1] 119.2131
-summ(BestmodelEX)
+BestmodelEXTR <- (get.models(bestEXTR, 1)[[1]])
+AICc(BestmodelEXTR) # [1] 122.4864 OK
 
-#POST-HOCS:
-emmeans (BestmodelEX, pairwise ~ Origin) 
+# Simplified summary
+summ(BestmodelEXTR)
 ```
 
-## Stab-Q-Chimp subtypes
-             with EAE and 16Pf
-# Physical aggression
+## Withdrawal
+            and EAE
 ```{r}
-# full model
-fullPHYtot <- glm(z.PhysicalAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse + z.Analytical + z.Cautiousness + z.Extraversion + z.RuleConsciousness, data = Data1, na.action = "na.fail")
-AICc(fullPHYtot) # [1] 120.3758
+# Converting Withdrawal to z-scores
+z.Withdrawal <- as.vector(scale(Data1$Withdrawal))
 
-# best fit model
+# Full model
+fullWITHD <- glm(z.Withdrawal ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
+AICc(fullWITHD) # 148.9611
+
+# Best model
+bestWITHD <- dredge(fullWITHD,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
+subset(bestWITHD, delta <= 4)
+model.avg(bestWITHD, subset = cumsum(weight) <= .95) 
+summary(get.models(bestWITHD, 1)[[1]]) # None
+
+BestmodelWITHD <- (get.models(bestWITHD, 1)[[1]])
+AICc(BestmodelWITHD) # [1] 122.4864
+
+# Simplified summary
+summ(BestmodelWITHD)
+```
+
+## Affiliation
+            and EAE
+```{r}
+# Converting Withdrawal to z-scores
+z.Affiliation <- as.vector(scale(Data1$Affiliation))
+
+# Full model
+fullAFFIL <- glm(z.Affiliation ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
+AICc(fullAFFIL) # 138.3486
+check_collinearity(fullAFFIL)
+
+# Best model
+bestAFFIL <- dredge(fullAFFIL,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
+subset(bestAFFIL, delta <= 4)
+model.avg(bestAFFIL, subset = cumsum(weight) <= .95) 
+summary(get.models(bestAFFIL, 1)[[1]]) 
+
+BestmodelAFFIL <- (get.models(bestAFFIL, 1)[[1]])
+AICc(BestmodelAFFIL) # [1] 121.7247 OK
+
+# Simplified summary
+summ(BestmodelAFFIL)
+```
+# Combination:
+    16PF + EAE on predicting STAB-Q-Chimp factors
+# Physical aggression
+
+```{r}
+# Full model
+fullPHYtot <- glm(z.PhysicalAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse + z.Analytical + z.Extraversion + z.Withdrawal + z.Affiliation, data = Data1, na.action = "na.fail")
+AICc(fullPHYtot) # [1] 138.9542
+check_collinearity(fullPHYtot)
+
+# Best model
 bestPHYtot <- dredge(fullPHYtot,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
 subset(bestPHYtot, delta <= 4)
 model.avg(bestPHYtot, subset = cumsum(weight) <= .95) 
 BestmodelPHYtot <- (get.models(bestPHYtot, 1)[[1]])
-AICc(BestmodelPHYtot) # [1] 97.21521
+AICc(BestmodelPHYtot) # 110.5316
+summary(get.models(bestPHYtot, 1)[[1]])
+
+# Simplified summary
 summ(BestmodelPHYtot)
+
 #VIFS:
-check_collinearity(BestmodelPHYtot)
+check_collinearity(BestmodelPHYtot) # = 1.02 
 
 #POSTHOC
-emmeans (BestmodelPHYtot, pairwise ~ Abuse) 
-emmeans (BestmodelPHYtot, pairwise ~ AgeArrival)
+emmeans (BestmodelPHYtot, pairwise ~ EarlyRearing) 
 ```
-# Social aggression
+
+# Disruptive behavior
+
 ```{r}
-# full model
-fullSOCtot <- glm(z.SocialAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse + z.Analytical + z.Cautiousness + z.Extraversion + z.RuleConsciousness, data = Data1, na.action = "na.fail")
-AICc(fullSOCtot) # [1] 137.115
+# Full model
+fullDISRtot <- glm(z.DisruptiveBehavior ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse + z.Analytical + z.Extraversion + z.Withdrawal + z.Affiliation, data = Data1, na.action = "na.fail")
+AICc(fullDISRtot) # [1] 127.8653
+check_collinearity(fullDISRtot)
 
-# best fit model
-bestSOCtot <- dredge(fullSOCtot,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestSOCtot, delta <= 4)
-model.avg(bestSOCtot, subset = cumsum(weight) <= .95) 
-BestmodelSOCtot <- (get.models(bestSOCtot, 1)[[1]])
-summary(get.models(bestSOCtot, 1)[[1]])
-AICc(BestmodelSOCtot) # [1] 107.4076
-summ(BestmodelSOCtot)
-# VIF
-check_collinearity(BestmodelSOCtot)
+# Best model
+bestDISRtot <- dredge(fullDISRtot,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
+subset(bestDISRtot, delta <= 4)
+model.avg(bestDISRtot, subset = cumsum(weight) <= .95) 
+BestmodelDISRtot <- (get.models(bestDISRtot, 1)[[1]])
+AICc(BestmodelDISRtot) # 103.2769 OK
+summary(get.models(bestDISRtot, 1)[[1]])
+
+# Simplified summary
+summ(BestmodelDISRtot)
+
+#VIFS:
+check_collinearity(BestmodelDISRtot) # = 1.02 
 
 #POSTHOC
-emmeans (BestmodelSOCtot, pairwise ~ Origin)
+emmeans (BestmodelDISRtot, pairwise ~ EarlyRearing) 
 ```
-# Rule breaking
-```{r}
-#standarize 16PF in the DataRB
-z.AnalyticalRB <- as.vector(scale(DataRB$Analytical))
-z.CautiousnessRB <- as.vector(scale(DataRB$Cautiousness))
-z.RuleConsciousnessRB <- as.vector(scale(DataRB$RuleConsciousness))
-z.ExtraversionRB <- as.vector(scale(DataRB$Extraversion))
-
-# full model
-fullRBtot <- glm(z.RuleBreaking ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse + z.AnalyticalRB + z.CautiousnessRB + z.ExtraversionRB + z.RuleConsciousnessRB, data = DataRB, na.action = "na.fail")
-AICc(fullRBtot) # [1] 149.5476
-
-# best fit model
-bestRBtot <- dredge(fullRBtot,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestRBtot, delta <= 4)
-model.avg(bestRBtot, subset = cumsum(weight) <= .95) 
-BestmodelRBtot <- (get.models(bestRBtot, 1)[[1]])
-AICc(BestmodelRBtot) # [1] 111.3973
-summ(BestmodelRBtot)
-# VIF
-check_collinearity(BestmodelRBtot)
-#POSTHOC
-emmeans (BestmodelRBtot, pairwise ~ EarlyRearing)
-```
-
-#########################################
 
 # Plots - Visualization Data: Influence of EAE on STAB-Q-Chimp subtypes
 
@@ -377,73 +321,88 @@ library(ggpubr)
 library(multcomp)
 library(ggsignif)
 ```
-Bestmodel1
-```{r}
-Data1$Abuse <- as.factor(Data1$Abuse)
-modelo <- glm(z.PhysicalAggression ~ Abuse, data = Data1)
-resumen_posthoc <- summary(glht(modelo, linfct = mcp(Abuse = "Tukey")))
 
-p_values <- resumen_posthoc$test$pvalues
-comparisons <- list(
-  c("None", "Low"),
-  c("None", "Medium"),
-  c("None", "High"),
-  c("Low", "Medium"),
-  c("Low", "High"),
-  c("Medium", "High")
-)
-
-annotations <- ifelse(p_values < 0.001, "***",
-                      ifelse(p_values < 0.01, "**",
-                             ifelse(p_values < 0.05, "*", "ns")))
-# Crear el gráfico con ggplot2
-ggplot(Data1, aes(x = Abuse, y = z.PhysicalAggression, fill = Abuse)) +
-  geom_boxplot(outlier.shape = 25, outlier.fill = "black", outlier.color = "black") +
-  scale_fill_manual(values = colors1) +
-  labs(title = "Best model 1 - Abuse",
-       x = "Degree of Abuse",
-       y = "Physical aggression") +
-  scale_x_discrete(labels = c("None", "Low", "Medium", "High")) +
-  theme_minimal() +
-   geom_signif(comparisons = comparisons,
-              annotations = annotations,  # Aquí se agregan los asteriscos de significancia
-              map_signif_level = TRUE, 
-              textsize = 6)
-
-# Método gLM
-ggplot(Data1, aes(x = Abuse, y = z.PhysicalAggression, fill = Abuse)) +
-  geom_boxplot(outlier.shape = 25, outlier.fill = "black", outlier.color = "black") +
-  scale_fill_manual(values = colors1) +
-  labs(title = "Best model 1 - Abuse",
-       x = "Degree of Abuse",
-       y = "Physical aggression") +
-  scale_x_discrete(labels = c("None", "Low", "Medium", "High")) +
-  theme_minimal() +
-  geom_signif(comparisons = comparisons, 
-              map_signif_level = TRUE, 
-              textsize = 6)
-
-
-# Warning: [1m[22mComputation failed in `stat_compare_means()`
-```
-
-
-## BEST MODEL 1 - PHYSICAL AGGRESSION ##
+# Best model 1 - Physical Aggression
 ```{r}
 colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
 plot.new() #Crear gráfico en planco
 set.seed(1)
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
+par(mfrow = c(1,2))
 
-# Ventana gráfica a superponer los dos gráficos [ si hay solo un grafico: par(new = TRUE)]
-par(mfrow = c(1,2)) # 1 fila y 2 columnas
+# Best model 1: PHY - Early Rearing
+dev.new(width = 10, height = 10)
+boxplot(z.PhysicalAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
+        lwd = 1,
+        col = colors1,
+        xlab = "Early Rearing Conditions",
+        ylab = "Physical aggression",
+        border = "black",
+        outpch = 25,
+        outbg = "black",
+        whiskcol = "black",
+        whisklty = 1,
+        lty = 1,
+        names = c("Mother-reared", "Hand-reared"))
+```
 
-# Best model 1: PHY - Abuse
-boxplot(z.PhysicalAggression ~ Abuse, data=Data1, horizontal = FALSE,
+# Best model 2 - Disruptive Behavior
+```{r}
+colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
+plot.new() #Crear gráfico en planco
+set.seed(1)
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
+par(mfrow = c(1,2))
+
+# Best model 3: DB - Early Rearing
+dev.new(width = 10, height = 6)
+boxplot(z.DisruptiveBehavior ~ Origin, data=Data1, horizontal = FALSE,
+        lwd = 1,
+        col = colors1,
+        xlab = "Early Rearing Conditions",
+        ylab = "Disruptive Behavior",
+        border = "black",
+        outpch = 25,
+        outbg = "black",
+        whiskcol = "black",
+        whisklty = 1,
+        lty = 1,
+        names = c("Mother-reared", "Hand-reared"))
+```
+
+# Best model 3 - Aggressive Behavior
+```{r}
+colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
+plot.new() #Crear gráfico en planco
+set.seed(1)
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
+par(mfrow = c(1,2))
+
+# Best model 3: AB - Origin
+boxplot(z.AggressionRelated ~ Origin, data=Data1, horizontal = FALSE,
+        lwd = 1,
+        col = colors1,
+        xlab = "Origin",
+        ylab = "Aggressive Behavior",
+        border = "black",
+        outpch = 25,
+        outbg = "black",
+        whiskcol = "black",
+        whisklty = 1,
+        lty = 1,
+        names = c("Captivity born", "Wildborn"))
+```
+
+# Best model 4 - Affiliative Behavior
+```{r}
+# Introduction same as before.
+# Best model 4: AFF - Abuse
+dev.new(width = 10, height = 6)
+boxplot(z.Affiliative ~ Abuse, data=DataAFF, horizontal = FALSE,
         lwd = 1,
         col = colors1,
         xlab = "Degree of Abuse",
-        ylab = "Physical aggression",
+        ylab = "Affiliative Behavior",
         border = "black",
         outpch = 25,
         outbg = "black",
@@ -452,52 +411,12 @@ boxplot(z.PhysicalAggression ~ Abuse, data=Data1, horizontal = FALSE,
         lty = 1,
         names = c("None", "Low", "Medium", "High"))
 
-# Best model 1: PHY - AgeArrival
-boxplot(z.PhysicalAggression ~ AgeArrival, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Age at arrival to the centre",
-        ylab = "Physical aggression",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("0-2", "3-10", ">10", "captivity born"))
-
-# Juntarlos en una sola imagen
-par(mfrow = c(1, 1))
-```
-## BEST MODEL 2 - SOCIAL AGGRESSION ##
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(mfrow = c(1,2))
-
-# Best model 2: SOC - Early Rearing
-boxplot(z.SocialAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early rearing conditions",
-        ylab = "Social aggression",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared"))
-p + geom_signif(comparisons = list(c("Mother-reared", "Hand-reared")),
-                map_signif_level = TRUE)
-# Best model 2: SOC - Origin
-boxplot(z.SocialAggression ~ Origin, data=Data1, horizontal = FALSE,
+# Best model 4: AFF - Origin
+boxplot(z.Affiliative ~ Origin, data=DataAFF, horizontal = FALSE,
         lwd = 1,
         col = colors1,
         xlab = "Origin",
-        ylab = "Social aggression",
+        ylab = "Affiliative Behavior",
         border = "black",
         outpch = 25,
         outbg = "black",
@@ -505,182 +424,11 @@ boxplot(z.SocialAggression ~ Origin, data=Data1, horizontal = FALSE,
         whisklty = 1,
         lty = 1,
         names = c("Captivity born", "Wildborn"))
-par(mfrow = c(1, 1))
-```
-## BEST MODEL 3 - RULE BREAKING ##
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(new = TRUE)
-
-# Best model 3: RB - Early Rearing
-boxplot(z.RuleBreaking ~ EarlyRearing, data=DataRB, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early rearing conditions",
-        ylab = "Rule breaking",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared")) #No hay unstructured, meter en la discusión (?)
-```
-
-# Plots - Visualization Data: Influence of EAE on Behavioural rates
-## BEST MODEL 4 - AGGRESSIVE BEHAVIOUR ##
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(new = TRUE)
-
-# Best model 4: AGGR - Origin
-boxplot(z.AggressionRelated ~ Origin, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Origin",
-        ylab = "Rate of aggressive behaviour",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Captivity born", "Wildborn"))
-```
-## BEST MODEL 5 - AFFILIATIVE BEHAVIOUR ##
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(mfrow = c(1,2))
-
-# Best model 5: AFF - Abuse
-boxplot(z.Affiliative ~ Abuse, data = DataAFF, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Degree of abuse",
-        ylab = "Rate of affiliative behaviour",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("None", "Low", "Medium", "High"))
-
-# Best model 5: AFF - Early rearing
-boxplot(z.Affiliative ~ EarlyRearing, data = DataAFF, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early rearing conditions",
-        ylab = "Rate of affiliative behaviour",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared"))
 
 par(mfrow = c(1, 1))
 ```
 
-# Plots - Visualization Data: Influence of EAE on personality 16PF dimensions
-## BESTMODEL 6 - ANALYTICAL
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(mfrow = c(1,2))
-
-# Best model 6: ANA - Abuse
-boxplot(z.Analytical ~ Abuse, data = Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Degree of abuse",
-        ylab = "Analytical levels",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("None", "Low", "Medium", "High"))
-
-# Best model 6: ANA - Age at arrival
-boxplot(z.Analytical ~ AgeArrival, data = Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Age at arrival to the centre",
-        ylab = "Analytical levels",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("0-2", "3-10", ">10", "captivity born"))
-
-par(mfrow = c(1, 1))
-```
-CAUTIOUSNESS NO TIENE VARIABLE PREDICTORA SIGNIFICATIVA
-## BESTMODEL 8 - RULE-CONSCIOUSNESS
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(new = TRUE)
-
-# Best model 4: CONSC - Early rearing
-boxplot(z.RuleConsciousness ~ EarlyRearing, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early rearing conditions",
-        ylab = "Rule Consciousness levels",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared"))
-
-
-```
-## BESTMODEL 9 - EXTRAVERSION
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(new = TRUE)
-
-# Best model 4: EXTRAV - Origin
-boxplot(z.AggressionRelated ~ Origin, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Origin",
-        ylab = "Extraversion levels",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Captivity born", "Wildborn"))
-```
-
-# Plots - Visualization Data: Influence of EAE + 16PF on STAB-Q-Chimp subtypes
-## BESTMODEL 10 - PHYSICAL AGGRESSION
+# Best model 5 - Analytical
 ```{r}
 colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
 plot.new() #Crear gráfico en planco
@@ -688,55 +436,76 @@ set.seed(1)
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
 par(mfrow = c(2,2))
 
-# Best model 10: PHY - Abuse
-boxplot(z.PhysicalAggression ~ Abuse, data = Data1, horizontal = FALSE,
+# Best model 5: ANA - Mother Separation
+dev.new(width = 10, height = 6)
+boxplot(z.Analytical ~ MotherSeparation, data=Data1, horizontal = FALSE,
         lwd = 1,
         col = colors1,
-        xlab = "Degree of abuse",
-        ylab = "Physical aggression",
+        xlab = "Mother Separation before 5 years old",
+        ylab = "Analytical-Concrete",
         border = "black",
         outpch = 25,
         outbg = "black",
         whiskcol = "black",
         whisklty = 1,
         lty = 1,
-        names = c("None", "Low", "Medium", "High"))
+        names = c("Yes", "No", "Unknown"))
 
-# Best model 10: PHY - Age at arrival
-boxplot(z.PhysicalAggression ~ AgeArrival, data = Data1, horizontal = FALSE,
+# Best model 5: ANA - Past Experiences
+dev.new(width = 15, height = 6)
+par(mar = c(12, 5, 4, 2))
+boxplot(z.Analytical ~ PastExperiences, data=Data1, horizontal = FALSE,
         lwd = 1,
         col = colors1,
-        xlab = "Age at arrival to the centre",
-        ylab = "Physical aggression",
+        xlab = "Past Experiences",
+        ylab = "Analytical-Concrete",
         border = "black",
         outpch = 25,
         outbg = "black",
         whiskcol = "black",
         whisklty = 1,
         lty = 1,
-        names = c("0-2", "3-10", ">10", "captivity born"))
+        names = c("Bushmeat", "Pet and Performer", "Zoo-born", "Sanctuary-born"))
 
-# Bestmodel 10: PHY - Cautiousness
-plot(Data1$Cautiousness, z.PhysicalAggression,
+par(mfrow = c(1, 1))
+```
+
+# Best model 9 - PHYSICAL AGGRESSION
+```{r}
+colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
+plot.new() #Crear gráfico en planco
+set.seed(1)
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
+par(mfrow = c(2,2))
+
+# Best model 9 - PHY and Early Rearing 
+boxplot(z.PhysicalAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
+        lwd = 1,
+        col = colors1,
+        xlab = "Early Rearing Conditions",
+        ylab = "Physical Aggression",
+        border = "black",
+        outpch = 25,
+        outbg = "black",
+        whiskcol = "black",
+        whisklty = 1,
+        lty = 1,
+        names = c("Mother-reared", "Hand-reared"))
+
+# Best model 5 - PHY and Affiliation
+plot(Data1$Affiliation, z.PhysicalAggression,
      col = "grey",  
      pch = 19,  
-     xlab = "Cautiousness",  
+     xlab = "Affiliation",  
      ylab = "Physical Aggression") 
-lines(lowess(Data1$Cautiousness, z.PhysicalAggression), col = "#EE3B3B", lwd = 2, lty = 2)
-abline(lm(z.PhysicalAggression ~ Cautiousness, data = Data1), col = "black", lwd = 1)
+lines(lowess(Data1$Affiliation, z.PhysicalAggression), col = "#EE3B3B", lwd = 2, lty = 2)
+abline(lm(z.PhysicalAggression ~ Affiliation, data = Data1), col = "black", lwd = 1) 
 
-# Bestmodel 10: PHY - Rule-Consciousness
-plot(Data1$RuleConsciousness, z.PhysicalAggression,
-     col = "grey", 
-     pch = 19,  
-     xlab = "Rule Consciousness",  
-     ylab = "Physical Aggression")  
-lines(lowess(Data1$RuleConsciousness, z.PhysicalAggression), col = "#EE3B3B", lwd = 2, lty = 2)
-abline(lm(z.PhysicalAggression ~ RuleConsciousness, data = Data1), col = "black", lwd = 1) 
-
+# Combine both plots
 par(mfrow = c(1, 1))
 ```
-## BestMODEL 11 - SOCIAL AGGRESSION
+
+# Best model 10 - DISTRUPTIVE BEHAVIOR 
 ```{r}
 colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
 plot.new() #Crear gráfico en planco
@@ -744,62 +513,12 @@ set.seed(1)
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
 par(mfrow = c(2,2))
 
-# Best model 11: SOC - Origin
-boxplot(z.SocialAggression ~ Origin, data=Data1, horizontal = FALSE,
+# Best model 10 - DB and Early Rearing 
+boxplot(z.DisruptiveBehavior ~ EarlyRearing, data=Data1, horizontal = FALSE,
         lwd = 1,
         col = colors1,
-        xlab = "Origin",
-        ylab = "Social aggression",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Captivity born", "Wildborn"))
-
-# Best model 11: SOC - Analytical
-plot(Data1$Analytical, z.SocialAggression,
-     col = "grey",  
-     pch = 19,  
-     xlab = "Analytical",  
-     ylab = "Social Aggression") 
-lines(lowess(Data1$Analytical, z.SocialAggression), col = "#EE3B3B", lwd = 2, lty = 2)
-abline(lm(z.SocialAggression ~ Analytical, data = Data1), col = "black", lwd = 1) 
-
-# Best model 11: SOC - Cautiousness
-plot(Data1$Cautiousness, z.SocialAggression,
-     col = "grey",  
-     pch = 19,  
-     xlab = "Cautiousness",  
-     ylab = "Social Aggression") 
-lines(lowess(Data1$Cautiousness, z.SocialAggression), col = "#EE3B3B", lwd = 2, lty = 2)
-abline(lm(z.SocialAggression ~ Cautiousness, data = Data1), col = "black", lwd = 1)
-
-# Best model 11: SOC - Rule-Consciousness
-plot(Data1$RuleConsciousness, z.SocialAggression,
-     col = "grey", 
-     pch = 19,  
-     xlab = "Rule Consciousness",  
-     ylab = "Social Aggression")  
-lines(lowess(Data1$RuleConsciousness, z.SocialAggression), col = "#EE3B3B", lwd = 2, lty = 2)
-abline(lm(z.SocialAggression ~ RuleConsciousness, data = Data1), col = "black", lwd = 1) 
-
-par(mfrow = c(1, 1))
-```
-## BESTMODEL 12 - RULE BREAKING (Es exactamente lo mismo que el anterior Best model 2 pero solo con early rearing)
-```{r}
- colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(new = TRUE)
-
-boxplot(z.RuleBreaking ~ EarlyRearing, data=DataRB, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early rearing conditions",
-        ylab = "Rule breaking",
+        xlab = "Early Rearing Conditions",
+        ylab = "Disruptive Behavior",
         border = "black",
         outpch = 25,
         outbg = "black",
@@ -807,5 +526,16 @@ boxplot(z.RuleBreaking ~ EarlyRearing, data=DataRB, horizontal = FALSE,
         whisklty = 1,
         lty = 1,
         names = c("Mother-reared", "Hand-reared"))
-```
 
+# Best model 5 - PHY and Affiliation
+plot(Data1$Affiliation, z.DisruptiveBehavior,
+     col = "grey",  
+     pch = 19,  
+     xlab = "Affiliation",  
+     ylab = "Disruptive Behavior") 
+lines(lowess(Data1$Affiliation, z.DisruptiveBehavior), col = "#EE3B3B", lwd = 2, lty = 2)
+abline(lm(z.DisruptiveBehavior ~ Affiliation, data = Data1), col = "black", lwd = 1) 
+
+# Combine both plots
+par(mfrow = c(1, 1))
+```
