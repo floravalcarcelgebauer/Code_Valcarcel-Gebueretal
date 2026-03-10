@@ -101,7 +101,7 @@ library(multcomp)
 library(ggsignif)
 ```
 
-# Best model 1 - Physical Aggression
+# Best model - Physical Aggression and Early Rearing
 ```{r}
 colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
 plot.new() #Crear gráfico en planco
@@ -109,7 +109,7 @@ set.seed(1)
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
 par(mfrow = c(1,2))
 
-# Best model 1: PHY - Early Rearing
+# Best model: PHY - Early Rearing
 dev.new(width = 10, height = 10)
 boxplot(z.PhysicalAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
         lwd = 1,
@@ -126,7 +126,7 @@ boxplot(z.PhysicalAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
 ```
 
 
-# Best model 2 - Disruptive Behavior
+# Best model - Disruptive Behavior and Early Rearing
 ```{r}
 colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
 plot.new() #Crear gráfico en planco
@@ -134,7 +134,7 @@ set.seed(1)
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
 par(mfrow = c(1,2))
 
-# Best model 3: DB - Early Rearing
+# Best model 2: DB - Early Rearing
 dev.new(width = 10, height = 6)
 boxplot(z.DisruptiveBehavior ~ Origin, data=Data1, horizontal = FALSE,
         lwd = 1,
