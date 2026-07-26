@@ -18,6 +18,20 @@ library(ggplot2)
 library(ggsignif)
 library(ggpubr)
 
+## Datasets
+# Data: full sample (N = 48)
+# DataA: subset with affiliative behavior data (n = 31)
+
+## DATA PREPROCESSING
+eae <- c("Origin","EarlyRearing","AgeArrival","PastExperiences","MotherSeparation","Abuse")
+recode_eae <- function(d){
+  for (v in eae) d[[v]][d[[v]] == "999"] <- NA
+  d$MotherSeparation[d$MotherSeparation == "M3"] <- NA   # Unknown -> missing
+  for (v in eae) d[[v]] <- factor(d[[v]])
+  d
+}
+Data  <- recode_eae(Data);  DataA <- recode_eae(DataA)
+
 ######### CORRELATIONS (partial Spearman, controlling for Sex) #########
 pcorr <- function(d, y, x = "Antisocial_z", z = "Sex"){
   ok <- complete.cases(d[, c(x, y, z)])
