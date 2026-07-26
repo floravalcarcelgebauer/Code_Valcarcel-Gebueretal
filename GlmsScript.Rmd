@@ -1,151 +1,110 @@
 ---
-title: "GlmsAnalysis, Valcarcel-Gebauer et al."
+title: "Script_Valcarcel_Gebauer_et_al"
 output: html_document
-date: 10/03/2026
+date: 26/07/2026
 ---
 
 ```{r setup, include=FALSE}
-# MuMIn: For model selection based on Akaike Criterion (AIC)
-if (!require("MuMIn")) install.packages("MuMIn")
-# car for collinearity
-if (!require("car")) install.packages("car")
-# formatting nas
-if (!require("dplyr")) install.packages("dplyr")
-# colinearity with checkcolinearity
-if (!require("performance")) install.packages("performance")
-# summary with j.tools
-if (!require("jtools")) install.packages("jtools")
-# for post-hocs
-if (!require("emmeans")) install.packages("emmeans")
 
-# Package loading
+## REQUIRED PACKAGES ##
+
 library(MuMIn)
 library(car)
 library(dplyr)
-library(performance) # checkcollinearity
-library(jtools) #summ
-library(emmeans) #post-hocs
-```
-
-## Loading data
-```{r}
-library(readxl)
-Data1 <- read_excel("")
-View(Data1)
-```
-
-## PHYSICAL Aggression 
-            and EAE
-```{r}
-# Converting Physical Aggression to z-scores
-z.PhysicalAggression <- as.vector(scale(Data1$PhysicalAggression))
-
-# Full model
-fullPHY <- glm(z.PhysicalAggression ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fullPHY)
-check_collinearity(fullPHY)
-
-# Best model
-bestPHY <- dredge(fullPHY,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestPHY, delta <= 4)
-model.avg(bestPHY, subset = cumsum(weight) <= .95)
-summary(get.models(bestPHY, 1)[[1]]) 
-
-BestmodelPHY <- (get.models(bestPHY, 1)[[1]])
-AICc(BestmodelPHY) 
-
-# VIFS:
-check_collinearity(BestmodelPHY) 
-
-# POST-HOCS:
-emmeans (BestmodelPHY, pairwise ~ EarlyRearing) 
-```
-
-
-## DISRUPTIVE Behavior
-            and EAE
-```{r}
-# Converting Disruptive Behavior to z-scores
-z.DisruptiveBehavior <- as.vector(scale(Data1$DisruptiveBehavior))
-
-# Full model
-fulldis <- glm(z.DisruptiveBehavior ~ Origin + EarlyRearing + AgeArrival + PastExperiences + MotherSeparation + Abuse, data = Data1, na.action = "na.fail")
-AICc(fulldis) 
-check_collinearity(fulldis) 
-
-# Best model
-bestdis <- dredge(fulldis,  rank = "AICc", trace=4, fixed = NULL, m.lim = NULL)
-subset(bestdis, delta <= 4)
-model.avg(bestdis, subset = cumsum(weight) <= .95)
-summary(get.models(bestdis, 1)[[1]]) 
-
-Bestmodeldis <- (get.models(bestdis, 1)[[1]])
-AICc(Bestmodeldis) 
-
-# VIFS: No need
-
-# POST-HOCS:
-emmeans (Bestmodeldis, pairwise ~ EarlyRearing)
-```
-
-
-# Plots - Visualization Data: Influence of EAE on STAB-Q-Chimp subtypes
-
-```{r}
-if (!require("ggplot2")) install.packages("ggplot2")
-if (!require("ggpubr")) install.packages("ggpubr")
+library(performance)
+library(jtools)
+library(emmeans)
+library(ppcor)
 library(ggplot2)
+library(ggsignif)
 library(ggpubr)
 
-library(multcomp)
-library(ggsignif)
-```
+######### CORRELATIONS (partial Spearman, controlling for Sex) #########
+pcorr <- function(d, y, x = "Antisocial_z", z = "Sex"){
+  ok <- complete.cases(d[, c(x, y, z)])
+  r  <- ppcor::pcor.test(d[[x]][ok], d[[y]][ok], d[[z]][ok], method = "spearman")
+  data.frame(pair = paste0("Antisocial x ", y), rho = round(r$estimate, 3),
+             p = r$p.value, n = sum(ok))
+}
 
-# Best model - Physical Aggression and Early Rearing
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(mfrow = c(1,2))
+## FAMILY A: Antisocial-like x Behavior
+famA <- rbind(pcorr(Data, "Aggression"), pcorr(DataA, "Affiliation"))
+famA$p_BH <- p.adjust(famA$p, method = "BH")
 
-# Best model: PHY - Early Rearing
-dev.new(width = 10, height = 10)
-boxplot(z.PhysicalAggression ~ EarlyRearing, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early Rearing Conditions",
-        ylab = "Physical aggression",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared"))
-```
+## FAMILY B: Antisocial-like x 16PF
+famB <- do.call(rbind, lapply(c("Extraversion","Anxiety","Restraint","Dominance"),
+                              function(v) pcorr(Data, v)))
+famB$p_BH <- p.adjust(famB$p, method = "BH")
+
+######### GLM - Antisocial-like score ~ EAE #########
+full <- glm(Antisocial_z ~ Origin + EarlyRearing + MotherSeparation + Abuse,
+            data = gd_full, na.action = "na.fail")
+best_set <- dredge(full, rank = "AICc", trace = FALSE)
+print(summary(model.avg(best_set, subset = cumsum(weight) <= .95)))
+best <- get.models(best_set, 1)[[1]]
+
+## POST-HOC PAIRWISE COMPARISONS for predictors retained in the best model
+best_terms <- attr(terms(best), "term.labels")
+best_terms <- best_terms[best_terms %in% glm_vars]
+posthoc <- data.frame()
+
+for (v in best_terms){
+  ct <- as.data.frame(pairs(emmeans(best, specs = v), adjust = "none"))
+  ct$predictor <- v; posthoc <- rbind(posthoc, ct[, c("predictor","contrast","estimate","SE","p.value")])
+}
+
+posthoc$p_BH <- p.adjust(posthoc$p.value, method = "BH")
+
+######### FIGURES #########
+theme_apa <- theme_classic(base_size = 13, base_family = "Arial") +
+  theme(axis.text = element_text(color = "black"),
+        plot.title = element_text(hjust = 0.5, size = 13), legend.position = "none")
+fill_cols <- c("#CBD6E2", "#E9C7C2")
+
+## CORRELATIONS Antisocial-like score x Behavior & Antisocial-like score x 16PF 
+scatter <- function(yvar, ylab, annot, hpos = "left") {
+  xr <- range(Data$Antisocial_z, na.rm = TRUE)
+  yr <- range(Data[[yvar]], na.rm = TRUE)
+  lab <- data.frame(x = if (hpos == "left") xr[1] else xr[2], y = yr[2], lab = annot)
+  ggplot(Data, aes(x = Antisocial_z, y = .data[[yvar]])) +
+    geom_smooth(method = "lm", se = TRUE, color = "#33506b", fill = "#CBD6E2", linewidth = 0.8) +
+    geom_point(size = 2, alpha = 0.7, color = "#33506b", stroke = 0) +
+    geom_label(data = lab, aes(x = x, y = y, label = lab), inherit.aes = FALSE,
+               hjust = if (hpos == "left") 0 else 1, vjust = 1,
+               family = "Arial", size = 4, fill = "white",
+               linewidth = 0, label.padding = unit(0.2, "lines")) +
+    labs(x = "Antisocial-like behavior (z)", y = ylab) + theme_apa
+}
+pa <- scatter("Aggression", "Aggressive behavior (rate)", "rs = .64, p < .001", hpos = "left")
+pb <- scatter("Restraint",  "Restraint (z)",              "rs = -.44, pFDR = .009", hpos = "right")
+
+fig1 <- ggarrange(pa, pb, ncol = 2, labels = c("A","B"), font.label = list(size = 14, family = "Arial"))
+fig1
+
+## GLM Antisocial-like score x EAE (E1/E2 and O1/O2 only remain after complete cases)
+gd <- Data[complete.cases(Data[, c("Antisocial_z", glm_vars)]), ]
+gd$EarlyRearing <- factor(gd$EarlyRearing, levels = c("E1","E2"), labels = c("Mother-reared","Hand-reared"))
+gd$Origin       <- factor(gd$Origin,       levels = c("O1","O2"), labels = c("Wild-born","Captive-born"))
+
+box_panel <- function(data, xvar, title, sig_annot){
+  nlab <- data %>% count(.data[[xvar]]) %>% mutate(lab = paste0(.data[[xvar]], "\n(n = ", n, ")"))
+  ggplot(data, aes(x = .data[[xvar]], y = Antisocial_z, fill = .data[[xvar]])) +
+    geom_boxplot(width = 0.55, outlier.shape = NA, alpha = 0.9, color = "black", linewidth = 0.4) +
+    geom_jitter(width = 0.08, size = 1.7, alpha = 0.6, color = "#33506b", stroke = 0) +
+    geom_signif(comparisons = list(levels(data[[xvar]])), annotations = sig_annot,
+                textsize = 4, tip_length = 0.02, family = "Arial", vjust = -0.1) +
+    scale_fill_manual(values = fill_cols) +
+    scale_x_discrete(labels = setNames(nlab$lab, nlab[[xvar]])) +
+    scale_y_continuous(expand = expansion(mult = c(0.05, 0.18))) +
+    labs(x = NULL, y = "Antisocial-like behavior (z)", title = title) + theme_apa
+}
+
+## p values below are the FDR-corrected pairwise contrasts (update if your run differs)
+p1 <- box_panel(gd, "EarlyRearing", "Early Rearing", "p = .031")
+p2 <- box_panel(gd, "Origin",       "Origin",        "p = .012")
+fig2 <- ggarrange(p1, p2, ncol = 2, labels = c("A","B"), font.label = list(size = 14, family = "Arial"))
+fig2
 
 
-# Best model - Disruptive Behavior and Early Rearing
-```{r}
-colors1 = c("#C1CDCD", "#EE3B3B", "#8EE5EE", "#BCEE68")
-plot.new() #Crear gráfico en planco
-set.seed(1)
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "#FDFAFA")
-par(mfrow = c(1,2))
 
-# Best model 2: DB - Early Rearing
-dev.new(width = 10, height = 6)
-boxplot(z.DisruptiveBehavior ~ Origin, data=Data1, horizontal = FALSE,
-        lwd = 1,
-        col = colors1,
-        xlab = "Early Rearing Conditions",
-        ylab = "Disruptive Behavior",
-        border = "black",
-        outpch = 25,
-        outbg = "black",
-        whiskcol = "black",
-        whisklty = 1,
-        lty = 1,
-        names = c("Mother-reared", "Hand-reared"))
 ```
