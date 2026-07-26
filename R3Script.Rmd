@@ -104,7 +104,4 @@ p1 <- box_panel(gd, "EarlyRearing", "Early Rearing", "p = .031")
 p2 <- box_panel(gd, "Origin",       "Origin",        "p = .012")
 fig2 <- ggarrange(p1, p2, ncol = 2, labels = c("A","B"), font.label = list(size = 14, family = "Arial"))
 fig2
-
-
-
 ```
